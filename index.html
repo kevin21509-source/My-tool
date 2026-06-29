@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貼文生成器</title>
+<style>
+  :root{
+    --ink:#1f1b16;
+    --paper:#faf6ef;
+    --paper-2:#f1ead9;
+    --line:#d9cdb4;
+    --accent:#c1502e;
+    --accent-ink:#fff5ef;
+    --muted:#8a7f6a;
+    --good:#3f6b4f;
+    --radius:14px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:32px 20px 64px;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:28px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+  }
+  header.top h1{
+    font-family:Georgia,"Noto Serif TC",serif;
+    font-size:1.9rem;
+    margin:0;
+    letter-spacing:0.5px;
+  }
+  header.top .tag{
+    font-size:0.8rem;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:4px 10px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+    margin-bottom:24px;
+    box-shadow:0 1px 2px rgba(31,27,22,0.04);
+  }
+  .panel h2{
+    font-size:1.05rem;
+    margin:0 0 16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2 .num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:24px;height:24px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:0.75rem;
+    font-weight:700;
+  }
+
+  label{
+    display:block;
+    font-size:0.85rem;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--ink);
+  }
+  .field{margin-bottom:18px;}
+  .field:last-child{margin-bottom:0;}
+  .hint{
+    font-size:0.78rem;
+    color:var(--muted);
+    margin-top:5px;
+  }
+
+  textarea, input[type="text"]{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--paper-2);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:0.95rem;
+    resize:vertical;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  textarea:focus, input[type="text"]:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(193,80,46,0.15);
+    background:#fff;
+  }
+
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:600px){
+    .grid2{grid-template-columns:1fr;}
+  }
+
+  .chip-group{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    color:var(--ink);
+    padding:8px 14px;
+    border-radius:999px;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition:all .15s;
+    user-select:none;
+  }
+  .chip:hover{border-color:var(--accent);}
+  .chip.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .row-inline{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  .btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family:inherit;
+    font-weight:700;
+    font-size:0.95rem;
+    border-radius:10px;
+    padding:13px 22px;
+    transition:transform .12s, opacity .12s, background .15s;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{
+    background:var(--accent);
+    color:var(--accent-ink);
+    width:100%;
+  }
+  .btn-primary:hover{opacity:0.92;}
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-weight:600;
+    font-size:0.82rem;
+    padding:8px 14px;
+  }
+  .btn-ghost:hover{border-color:var(--ink);}
+
+  #results{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .result-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-left:4px solid var(--accent);
+    border-radius:10px;
+    padding:18px 18px 16px;
+    animation:fadeIn .35s ease both;
+  }
+  @keyframes fadeIn{
+    from{opacity:0; transform:translateY(6px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .result-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .result-label{
+    font-size:0.75rem;
+    font-weight:700;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+  .result-text{
+    white-space:pre-wrap;
+    font-size:0.95rem;
+    color:var(--ink);
+    margin:0 0 12px;
+  }
+  .result-actions{
+    display:flex;
+    gap:8px;
+  }
+
+  .copy-btn{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-size:0.8rem;
+    font-weight:600;
+    padding:7px 13px;
+    border-radius:8px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:background .15s, border-color .15s;
+  }
+  .copy-btn:hover{border-color:var(--accent);}
+  .copy-btn.copied{
+    background:var(--good);
+    border-color:var(--good);
+    color:#fff;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:48px 20px;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    font-size:0.9rem;
+  }
+
+  /* Toast (取代 alert) */
+  #toast{
+    position:fixed;
+    bottom:28px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 20px;
+    border-radius:10px;
+    font-size:0.88rem;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    box-shadow:0 6px 20px rgba(0,0,0,0.2);
+    z-index:999;
+    max-width:90%;
+    text-align:center;
+  }
+  #toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  .char-count{
+    font-size:0.75rem;
+    color:var(--muted);
+    text-align:right;
+    margin-top:4px;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:0.78rem;
+    margin-top:36px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <h1>貼文生成器</h1>
+    <span class="tag">不儲存任何資料 · 純前端</span>
+  </header>
+
+  <!-- 步驟一:基本資訊 -->
+  <section class="panel">
+    <h2><span class="num">1</span>貼文主題</h2>
+    <div class="field">
+      <label for="topic">這篇貼文想說什麼?</label>
+      <textarea id="topic" rows="3" placeholder="例如:我們推出了新口味的手沖咖啡,豆子來自衣索比亞"></textarea>
+      <div class="hint">寫得越具體,產生出來的文案就會越貼切。</div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="keywords">關鍵字 / 標籤(用逗號分隔,選填)</label>
+        <input type="text" id="keywords" placeholder="例如:手沖咖啡, 衣索比亞, 新品上市">
+      </div>
+      <div class="field">
+        <label for="cta">想引導讀者做什麼?(選填)</label>
+        <input type="text" id="cta" placeholder="例如:留言告訴我你最愛的口味">
+      </div>
+    </div>
+  </section>
+
+  <!-- 步驟二:語氣與平台 -->
+  <section class="panel">
+    <h2><span class="num">2</span>語氣與平台</h2>
+
+    <div class="field">
+      <label>語氣風格</label>
+      <div class="chip-group" id="toneGroup">
+        <div class="chip active" data-value="親切">親切自然</div>
+        <div class="chip" data-value="專業">專業正式</div>
+        <div class="chip" data-value="活潑">活潑有趣</div>
+        <div class="chip" data-value="感性">感性溫暖</div>
+        <div class="chip" data-value="行銷">促購行銷</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>適用平台</label>
+      <div class="chip-group" id="platformGroup">
+        <div class="chip active" data-value="threads">Threads</div>
+        <div class="chip" data-value="ig">Instagram</div>
+        <div class="chip" data-value="fb">Facebook</div>
+        <div class="chip" data-value="x">X(Twitter)</div>
+        <div class="chip" data-value="linkedin">LinkedIn</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>要附帶表情符號嗎?</label>
+      <div class="chip-group" id="emojiGroup">
+        <div class="chip active" data-value="yes">是,加一點 🙂</div>
+        <div class="chip" data-value="no">不要,純文字就好</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 產生按鈕 -->
+  <button class="btn btn-primary" id="generateBtn">產生貼文文案</button>
+
+  <!-- 結果區 -->
+  <section style="margin-top:28px;">
+    <div id="results">
+      <div class="empty-state" id="emptyState">
+        填好上面的內容,按下「產生貼文文案」,這裡會出現三個不同版本給你挑選。
+      </div>
+    </div>
+  </section>
+
+  <footer>所有內容都只在你的瀏覽器中產生,重新整理頁面後不會保留。</footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- 工具函式 ----------
+  function $(sel){ return document.querySelector(sel); }
+  function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+  function showToast(msg){
+    var toast = $("#toast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(function(){
+      toast.classList.remove("show");
+    }, 1800);
+  }
+
+  // ---------- chip 群組(單選)互動 ----------
+  function setupChipGroup(groupId){
+    var group = document.getElementById(groupId);
+    var chips = group.querySelectorAll(".chip");
+    chips.forEach(function(chip){
+      chip.addEventListener("click", function(){
+        chips.forEach(function(c){ c.classList.remove("active"); });
+        chip.classList.add("active");
+      });
+    });
+  }
+  setupChipGroup("toneGroup");
+  setupChipGroup("platformGroup");
+  setupChipGroup("emojiGroup");
+
+  function getActiveValue(groupId){
+    var active = document.querySelector("#" + groupId + " .chip.active");
+    return active ? active.getAttribute("data-value") : null;
+  }
+
+  // ---------- 平台限制與風格設定 ----------
+  var platformMeta = {
+    threads: { name: "Threads", limit: 500, hashtagStyle: "句尾 1-2 個標籤" },
+    ig:      { name: "Instagram", limit: 2200, hashtagStyle: "文末集中 5-8 個標籤" },
+    fb:      { name: "Facebook", limit: 0, hashtagStyle: "1-3 個標籤,不必太多" },
+    x:       { name: "X (Twitter)", limit: 280, hashtagStyle: "句尾 1-2 個標籤" },
+    linkedin:{ name: "LinkedIn", limit: 3000, hashtagStyle: "文末 3-5 個專業標籤" }
+  };
+
+  var emojiSets = {
+    親切: ["🙂", "🤍", "✨"],
+    專業: [],
+    活潑: ["🎉", "🔥", "😆", "✨"],
+    感性: ["🌙", "🤍", "📝"],
+    行銷: ["🔥", "⏰", "🎁"]
+  };
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function maybeEmoji(tone, useEmoji){
+    if(!useEmoji) return "";
+    var set = emojiSets[tone] || [];
+    if(set.length === 0) return "";
+    return " " + pick(set);
+  }
+
+  function buildHashtags(keywordsRaw){
+    if(!keywordsRaw.trim()) return "";
+    var list = keywordsRaw.split(",")
+      .map(function(k){ return k.trim(); })
+      .filter(Boolean)
+      .map(function(k){ return "#" + k.replace(/\s+/g, ""); });
+    return list.join(" ");
+  }
+
+  // ---------- 三種文案模板邏輯 ----------
+  function templateDirect(topic, tone, cta, emojiOn){
+    var lead = {
+      親切: "想跟大家分享一下:",
+      專業: "在此說明:",
+      活潑: "嘿嘿,有件事想說!",
+      感性: "最近一直在想,",
+      行銷: "好消息來了!"
+    }[tone] || "";
+
+    var body = lead + emojiOn + "\n\n" + topic.trim();
+    if(cta && cta.trim()){
+      body += "\n\n👉 " + cta.trim();
+    }
+    return body;
+  }
+
+  function templateStory(topic, tone, cta, emojiOn){
+    var opener = {
+      親切: "前幾天發生了一件小事,",
+      專業: "近期我們觀察到一個現象:",
+      活潑: "猜猜發生什麼事了?",
+      感性: "有時候,生活就是這樣不經意地給你提示。",
+      行銷: "如果你也曾經遇過這個困擾,"
+    }[tone] || "";
+
+    var body = opener + emojiOn + "\n\n" + topic.trim() +
+      "\n\n這也是為什麼,我們想把這件事分享出來。";
+    if(cta && cta.trim()){
+      body += "\n\n" + cta.trim();
+    }
+    return body;
+  }
+
+  function templateQuestion(topic, tone, cta, emojiOn){
+    var hook = {
+      親切: "想問問大家一個小問題" + emojiOn,
+      專業: "想了解大家對這件事的看法:",
+      活潑: "靈魂拷問時間到" + emojiOn,
+      感性: "不知道你會不會也有這樣的感覺,",
+      行銷: "你會不會也想要這個?"
+    }[tone] || "";
+
+    var body = hook + "\n\n" + topic.trim();
+    if(cta && cta.trim()){
+      body += "\n\n💬 " + cta.trim();
+    } else {
+      body += "\n\n💬 留言告訴我你的想法!";
+    }
+    return body;
+  }
+
+  var templates = [
+    { label: "直述版", fn: templateDirect },
+    { label: "故事版", fn: templateStory },
+    { label: "互動提問版", fn: templateQuestion }
+  ];
+
+  // ---------- 渲染結果 ----------
+  function renderResults(items, platformKey){
+    var container = $("#results");
+    container.innerHTML = "";
+
+    var meta = platformMeta[platformKey];
+
+    items.forEach(function(item, idx){
+      var card = document.createElement("div");
+      card.className = "result-card";
+
+      var head = document.createElement("div");
+      head.className = "result-head";
+
+      var label = document.createElement("span");
+      label.className = "result-label";
+      label.textContent = item.label + " · " + meta.name;
+      head.appendChild(label);
+
+      card.appendChild(head);
+
+      var text = document.createElement("p");
+      text.className = "result-text";
+      text.textContent = item.content;
+      card.appendChild(text);
+
+      if(meta.limit > 0){
+        var count = document.createElement("div");
+        count.className = "char-count";
+        var over = item.content.length > meta.limit;
+        count.style.color = over ? "#c1502e" : "var(--muted)";
+        count.textContent = item.content.length + " / " + meta.limit + " 字" + (over ? "(超出限制)" : "");
+        card.appendChild(count);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "result-actions";
+
+      var copyBtn = document.createElement("button");
+      copyBtn.className = "copy-btn";
+      copyBtn.textContent = "複製這篇";
+      copyBtn.addEventListener("click", function(){
+        copyText(item.content, copyBtn);
+      });
+      actions.appendChild(copyBtn);
+
+      card.appendChild(actions);
+      container.appendChild(card);
+    });
+  }
+
+  // ---------- 複製功能(不使用 alert/prompt/confirm) ----------
+  function copyText(text, btnEl){
+    function onSuccess(){
+      var original = btnEl.textContent;
+      btnEl.textContent = "已複製 ✓";
+      btnEl.classList.add("copied");
+      showToast("文案已複製到剪貼簿");
+      setTimeout(function(){
+        btnEl.textContent = original;
+        btnEl.classList.remove("copied");
+      }, 1600);
+    }
+    function onFail(){
+      showToast("複製失敗,請手動選取文字複製");
+    }
+
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(onSuccess, function(){
+        fallbackCopy(text, onSuccess, onFail);
+      });
+    } else {
+      fallbackCopy(text, onSuccess, onFail);
+    }
+  }
+
+  function fallbackCopy(text, onSuccess, onFail){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if(ok){ onSuccess(); } else { onFail(); }
+    }catch(e){
+      onFail();
+    }
+  }
+
+  // ---------- 主要產生流程 ----------
+  $("#generateBtn").addEventListener("click", function(){
+    var topic = $("#topic").value.trim();
+
+    if(!topic){
+      showToast("請先填寫貼文主題,我才能幫你生成內容");
+      $("#topic").focus();
+      return;
+    }
+
+    var tone = getActiveValue("toneGroup");
+    var platform = getActiveValue("platformGroup");
+    var emojiChoice = getActiveValue("emojiGroup");
+    var keywords = $("#keywords").value;
+    var cta = $("#cta").value;
+    var useEmoji = emojiChoice === "yes";
+
+    var hashtags = buildHashtags(keywords);
+
+    var generated = templates.map(function(t){
+      var content = t.fn(topic, tone, cta, maybeEmoji(tone, useEmoji));
+      if(hashtags){
+        content += "\n\n" + hashtags;
+      }
+      return { label: t.label, content: content };
+    });
+
+    renderResults(generated, platform);
+    showToast("已產生 3 個版本的文案");
+
+    // 平滑捲動到結果區
+    document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+})();
+</script>
+
+</body>
+</html>
